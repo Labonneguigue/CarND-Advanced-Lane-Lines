@@ -130,7 +130,7 @@ Here I'll talk about the approach I took, what techniques I used, what worked an
      m1 : <img:output_images/undistortion-comparison.jpg>)
 
 
-```puml
+```plantuml
 @startuml
 start
 -> RGB Image;
