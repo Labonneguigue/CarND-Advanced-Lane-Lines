@@ -47,7 +47,7 @@ The code for this step is contained in the first code cell of the IPython notebo
 
 I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
 
-I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
+I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result:
 
 ![alt text][image1]
 
@@ -83,9 +83,9 @@ dst = np.float32(
 
 This resulted in the following source and destination points:
 
-| Source        | Destination   | 
-|:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
+| Source        | Destination   |
+|:-------------:|:-------------:|
+| 585, 460      | 320, 0        |
 | 203, 720      | 320, 720      |
 | 1127, 720     | 960, 720      |
 | 695, 460      | 960, 0        |
@@ -124,4 +124,29 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.
+
+[//]: # (Comment: Way to include images
+     m1 : <img:output_images/undistortion-comparison.jpg>)
+
+
+```puml
+@startuml
+start
+-> RGB Image;
+:Undistort image;
+fork
+    :L channel extraction;
+    :Threshold binarization;
+fork again
+    :S channel extraction;
+    :Threshold binarization;
+end fork
+-> Stacking into a 3D image;
+:Perspective Transform;
+
+end
+@enduml
+```
+
+Check if I really want to call the Init() function with an image...
