@@ -26,6 +26,7 @@ The goals / steps of this project are the following:
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
 [image6]: ./examples/example_output.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
+[plantuml]: ./processing.png "plantuml"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
@@ -130,23 +131,6 @@ Here I'll talk about the approach I took, what techniques I used, what worked an
      m1 : <img:output_images/undistortion-comparison.jpg>)
 
 
-```plantuml
-@startuml
-start
--> RGB Image;
-:Undistort image;
-fork
-    :L channel extraction;
-    :Threshold binarization;
-fork again
-    :S channel extraction;
-    :Threshold binarization;
-end fork
--> Stacking into a 3D image;
-:Perspective Transform;
-
-end
-@enduml
-```
+![alt text][plantuml]
 
 Check if I really want to call the Init() function with an image...
