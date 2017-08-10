@@ -68,6 +68,9 @@ def Calibrate(nx=9, ny=6):
     print("Camera calibrated. ")
 
 def LoadCalibrationCoeffs():
+    '''
+    Load the previously computed calibration coefficients
+    '''
     dist_pickle = pickle.load(open( "camera_cal/wide_dist_pickle.p", "rb"))
     return dist_pickle["mtx"], dist_pickle["dist"]
 
