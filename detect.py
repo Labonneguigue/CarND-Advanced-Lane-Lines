@@ -505,6 +505,6 @@ if __name__ == "__main__":
     lanesDetector = LanesDetector()
 
     print('Processing video ... ' + P.parameters['videofile_in'])
-    vfc = VideoFileClip(P.parameters['videofile_in']).subclip(23, 27)
+    vfc = VideoFileClip(P.parameters['videofile_in'])#.subclip(23, 27)
     detected_vid_clip = vfc.fl_image(lanesDetector.ProcessImage)
     detected_vid_clip.write_videofile(P.parameters['videofile_out'], audio=False)
