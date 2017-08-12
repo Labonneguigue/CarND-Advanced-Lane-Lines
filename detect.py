@@ -370,8 +370,8 @@ class LanesDetector():
         right_line_pts = np.hstack((right_line_window1, right_line_window2))
 
         # Draw the lane onto the warped blank image
-        cv2.fillPoly(window_img, np.int_([left_line_pts]), (0,255, 0))
-        cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
+        cv2.fillPoly(window_img, np.int_([left_line_pts]), (255, 0, 0))
+        cv2.fillPoly(window_img, np.int_([right_line_pts]), (255, 0, 0))
         result = cv2.addWeighted(self.outputImage, 1, window_img, 0.3, 0)
         # plt.close('all')
         # fig = plt.figure()
@@ -453,8 +453,15 @@ class LanesDetector():
         aggregateViews = np.zeros((H, W, 3), dtype=np.uint8)
         h2 = int(H/2)
         w2 = int(W/2)
+        # Input image with overlayed detected lane -- 1
         aggregateViews[0:h2, 0:w2] = cv2.resize(views[0],(w2,h2), interpolation=cv2.INTER_AREA)
-        aggregateViews[h2:H, w2:W] = cv2.resize(views[1],(w2,h2), interpolation=cv2.INTER_AREA)
+        # Binarized image -- 2
+        view2 = np.dstack((views[1], views[1], views[1]))
+        aggregateViews[0:h2, w2:W] = cv2.resize(view2,(w2,h2), interpolation=cv2.INTER_AREA)
+        # Empty -- 3
+        #
+        # Warped perspective and polynomial fit of the lines -- 4
+        aggregateViews[h2:H, w2:W] = cv2.resize(views[2],(w2,h2), interpolation=cv2.INTER_AREA)
 
         return aggregateViews
 
@@ -472,8 +479,8 @@ class LanesDetector():
         cv2.putText(image, lateralDisplacement, (30, 120), font, 1, fontColor, 2, cv2.LINE_AA)
 
     def ProcessImage(self, image, key_frame_interval=20, cache_length=10):
-        assert(img.shape[0] == self.imageHeight)
-        assert(img.shape[1] == self.imageWidth)
+        assert(image.shape[0] == self.imageHeight)
+        assert(image.shape[1] == self.imageWidth)
 
         binary = self.ProcessingPipeline(image)
         topDownView = self.PerspectiveTransform(binary, PersMat)
@@ -493,7 +500,7 @@ class LanesDetector():
         self.UpdateCurvatureRadius()
         self.RenderText(image)
         overlayedLane = self.OverlayDetectedLane(image)
-        result = self.AggregateViews([overlayedLane, result])
+        result = self.AggregateViews([overlayedLane, binary, result])
 
         return result
 
@@ -505,6 +512,6 @@ if __name__ == "__main__":
     lanesDetector = LanesDetector()
 
     print('Processing video ... ' + P.parameters['videofile_in'])
-    vfc = VideoFileClip(P.parameters['videofile_in'])#.subclip(23, 27)
+    vfc = VideoFileClip(P.parameters['videofile_in']).subclip(23, 27)
     detected_vid_clip = vfc.fl_image(lanesDetector.ProcessImage)
     detected_vid_clip.write_videofile(P.parameters['videofile_out'], audio=False)
