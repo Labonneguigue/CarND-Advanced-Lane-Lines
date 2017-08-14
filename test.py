@@ -66,17 +66,22 @@ def WhiteColorTest(img, fname):
     mpimg.imsave(fname, WhiteBinarized, cmap=plt.cm.gray)
     print("Saved : " + fname)
 
-
 def PerspectiveTransformTest(lanesDetector, img, fname, extension=""):
-    result = lanesDetector.PerspectiveTransform(img, P.PersMat)
+    result = lanesDetector.PerspectiveTransform(img, D.PersMat)
     color=[255, 0, 0]
-    thickness=1
+    thickness=2
     cv2.line(result, (D.dst[0][0], D.dst[0][1]), (D.dst[1][0], D.dst[1][1]), color, thickness)
     cv2.line(result, (D.dst[1][0], D.dst[1][1]), (D.dst[2][0], D.dst[2][1]), color, thickness)
     cv2.line(result, (D.dst[2][0], D.dst[2][1]), (D.dst[3][0], D.dst[3][1]), color, thickness)
     cv2.line(result, (D.dst[3][0], D.dst[3][1]), (D.dst[0][0], D.dst[0][1]), color, thickness)
-    fname = fname[:-4] + '-PerspectiveTransform' + extension + '.png'
-    mpimg.imsave(fname, result)
+
+    cv2.line(img, (D.src[0][0], D.src[0][1]), (D.src[1][0], D.src[1][1]), color, thickness)
+    cv2.line(img, (D.src[1][0], D.src[1][1]), (D.src[2][0], D.src[2][1]), color, thickness)
+    cv2.line(img, (D.src[2][0], D.src[2][1]), (D.src[3][0], D.src[3][1]), color, thickness)
+    cv2.line(img, (D.src[3][0], D.src[3][1]), (D.src[0][0], D.src[0][1]), color, thickness)
+    fname = os.path.basename(fname)[:-4] + '-persp' + extension + '.png'
+    D.DisplayAndSave2Images(img, result, fname, "Perspective Transform", True)
+    #mpimg.imsave(fname, result)
     print("Saved : " + fname)
     return result
 
@@ -103,6 +108,7 @@ def DisplayParameters():
     print(P.parameters['orig_points_x'][3])
     print(P.parameters['orig_points_y'])
 
+
 if __name__ == "__main__":
     #fname = 'test_images/straight_lines1.jpg'
     #fname = 'test_images/straight_lines2.jpg'
@@ -113,21 +119,22 @@ if __name__ == "__main__":
     output_dir = "test_images/"
     img = D.LoadImage(fname)
     D.Init(img)
+    img = cv2.undistort(img, D.mtx, D.dist, None, D.mtx)
     if 0:
         CalibrationTest(img, fname)
     if 0:
-        ProcessingPipelineTest(D.LanesDetector(), img, fname)
+        result = ProcessingPipelineTest(D.LanesDetector(), img, fname)
+        D.DisplayAndSave2Images(img, result, os.path.basename(fname)[:-4] + "-side.png", True)
     if 0:
         SobelTest(img, fname)
-    if 1:
+    if 0:
         ColorTest(img, fname)
-    if 1:
+    if 0:
         WhiteColorTest(img, fname)
     if 0:
         DisplayParameters()
-    if 0:
-        img = cv2.undistort(img, D.mtx, D.dist, None, D.mtx)
-        PerspectiveTransformTest(img, fname, "-undistorted")
+    if 1:
+        PerspectiveTransformTest(D.LanesDetector(), img, fname)
     if 0:
         lanesDetector = D.LanesDetector()
         dir = os.listdir("test_images/")

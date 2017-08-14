@@ -77,7 +77,7 @@ def MergeChannels(imgA, imgB, imgC=None):
     else:
         return cv2.bitwise_or(cv2.bitwise_or(imgA, imgB), imgC)
 
-def DisplayAndSave2Images(imgA, imgB, name):
+def DisplayAndSave2Images(imgA, imgB, name, title='Pipeline Result', grayscale=False):
     '''
     Display 2 images side by side and save the figure
     for a quick comparison
@@ -86,8 +86,11 @@ def DisplayAndSave2Images(imgA, imgB, name):
     f.tight_layout()
     ax1.imshow(imgA)
     ax1.set_title('Original Image', fontsize=40)
-    ax2.imshow(imgB)
-    ax2.set_title('Pipeline Result', fontsize=40)
+    if grayscale:
+        ax2.imshow(imgB, cmap=plt.cm.gray)
+    else:
+        ax2.imshow(imgB)
+    ax2.set_title(title, fontsize=40)
     plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
     plt.savefig('output_images/' + name)
 
@@ -109,9 +112,9 @@ def InitPerspectiveMatrix(img):
         [P.parameters['orig_points_x'][3],  img.shape[0]]])
     dst = np.float32(
         [[(img.shape[1] / 4),    0],
-        [(img.shape[1] * 3 / 4), 0],
-        [(img.shape[1] * 3 / 4), img.shape[0]],
-        [(img.shape[1] / 4),     img.shape[0]]])
+        [ (img.shape[1] * 3 / 4), 0],
+        [ (img.shape[1] * 3 / 4), img.shape[0]],
+        [ (img.shape[1] / 4),     img.shape[0]]])
     #print(src)
     #print(dst)
     return cv2.getPerspectiveTransform(src, dst), cv2.getPerspectiveTransform(dst, src),
@@ -424,10 +427,10 @@ class LanesDetector():
         s_channel = hsv[:,:,2]
 
         SobelBinary = SobelBinarization(l_channel)  # sobel along x
-        WhiteBinary = ColorChannelBinarization(s_channel)
-        YellowBinary = ColorChannelBinarization(s_channel, (200, 255))
+        WhiteBinary = ColorChannelBinarization(l_channel, (200, 255))
+        YellowBinary = ColorChannelBinarization(s_channel)
 
-        return MergeChannels(SobelBinary, ColorBinary)
+        return MergeChannels(SobelBinary, WhiteBinary, YellowBinary)
 
     def OverlayDetectedLane(self, image):
         '''

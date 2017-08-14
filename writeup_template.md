@@ -22,7 +22,7 @@ The goals / steps of this project are the following:
 [color]: ./output_images/test6-colorS.png "colorS"
 [white]: ./output_images/test6-whiteL.png "whiteL"
 [image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
+[pipeline]: ./output_images/test6-side.png "pipeline"
 [image4]: ./examples/warped_straight_lines.jpg "Warp Example"
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
 [image6]: ./examples/example_output.jpg "Output"
@@ -104,11 +104,26 @@ We can observe that the white detecting picture detect the right line more accur
 
 Here's an example of my output for this step which is an aggregation of these previous steps.  
 
-![alt text][image3]
+![alt text][pipeline]
 
 #### 3. Perspective Transform
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+Since we want to detect the curvature of the lines, we need to change the perspective of the image. OpenCV comes very handy at doing so.
+
+
+
+The code for my perspective transform method is the following:
+
+```python
+def PerspectiveTransform(self, img, perspectiveMatrix):
+    '''
+    Change the perspective of the image
+    '''
+    return cv2.warpPerspective(img, perspectiveMatrix, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
+
+```
+
+includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
 
 ```python
 src = np.float32(
