@@ -51,7 +51,10 @@ def ColorTest(img, fname):
     dst = cv2.undistort(img, mtx, dist, None, mtx)
     hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
     s_channel = hsv[:,:,2]
-    ColorBinarized = D.ColorChannelBinarization(s_channel)
+    # ColorBinarized = D.ColorChannelBinarization(s_channel, (170, 200))
+    lower = np.uint8([ 10,   0, 100])
+    upper = np.uint8([ 40, 255, 255])
+    ColorBinarized = cv2.inRange(hsv, lower, upper)
     fname = 'output_images/' + os.path.basename(fname)[:-4] + '-colorS.png'
     mpimg.imsave(fname, ColorBinarized, cmap=plt.cm.gray)
     print("Saved : " + fname)
@@ -101,35 +104,37 @@ def BlindSlidingWindowsHistogramTest(lanesDetector, img, fname, extension=""):
     #mpimg.imsave(fname[:-4] + '-histogram' + extension + '.jpg', result)
 
 def DisplayParameters():
-    print(P.parameters['orig_points_x'])
-    print(P.parameters['orig_points_x'][0])
-    print(P.parameters['orig_points_x'][1])
-    print(P.parameters['orig_points_x'][2])
-    print(P.parameters['orig_points_x'][3])
-    print(P.parameters['orig_points_y'])
+    print(str(P.parameters['orig_points_x'][0]) + ", " + str(P.parameters['orig_points_y']))
+    print(str(P.parameters['orig_points_x'][1]) + ", " + str(P.parameters['orig_points_y']))
+    print(str(P.parameters['orig_points_x'][2]) + ", " + str(img.shape[0]))
+    print(str(P.parameters['orig_points_x'][3]) + ", " + str(img.shape[0]))
 
 
 if __name__ == "__main__":
     #fname = 'test_images/straight_lines1.jpg'
     #fname = 'test_images/straight_lines2.jpg'
     #fname = 'test_images/test1.jpg'
-    #fname = 'test_images/test2.jpg'
-    fname = 'test_images/test6.jpg'
+    # fname = 'test_images/test2.jpg'
+    #fname = 'test_images/test5.jpg'
+    #fname = 'test_images/test6.jpg'
+    fname = 'test_images/videoImage-16.jpg'
+    # fname = 'test_images/videoImage-46.png'
     print("Test performed on : " + fname)
     output_dir = "test_images/"
     img = D.LoadImage(fname)
     D.Init(img)
+    DisplayParameters()
     img = cv2.undistort(img, D.mtx, D.dist, None, D.mtx)
     if 0:
         CalibrationTest(img, fname)
-    if 0:
+    if 1:
         result = ProcessingPipelineTest(D.LanesDetector(), img, fname)
-        D.DisplayAndSave2Images(img, result, os.path.basename(fname)[:-4] + "-side.png", True)
-    if 0:
+        D.DisplayAndSave2Images(img, result, os.path.basename(fname)[:-4] + "-side.png", grayscale=True)
+    if 1:
         SobelTest(img, fname)
-    if 0:
+    if 1:
         ColorTest(img, fname)
-    if 0:
+    if 1:
         WhiteColorTest(img, fname)
     if 0:
         DisplayParameters()

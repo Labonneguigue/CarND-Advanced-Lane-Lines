@@ -21,9 +21,9 @@ The goals / steps of this project are the following:
 [sobel]: ./output_images/test6-sobel.png "sobel"
 [color]: ./output_images/test6-colorS.png "colorS"
 [white]: ./output_images/test6-whiteL.png "whiteL"
-[image2]: ./test_images/test1.jpg "Road Transformed"
+[persp]: ./output_images/test6-persp.png "persp"
 [pipeline]: ./output_images/test6-side.png "pipeline"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
+[persp2]: ./output_images/straight_lines2-persp.png "persp2"
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
 [image6]: ./examples/example_output.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
@@ -108,11 +108,11 @@ Here's an example of my output for this step which is an aggregation of these pr
 
 #### 3. Perspective Transform
 
-Since we want to detect the curvature of the lines, we need to change the perspective of the image. OpenCV comes very handy at doing so.
+Since we want to detect the curvature of the lines, we need to change the perspective of the image. OpenCV comes very handy at doing so. I first delimitate the area in the image I want to transform and then define its destination shape. It can be observed by the 2 red rectangles I've drawn.
 
+![alt text][persp]
 
-
-The code for my perspective transform method is the following:
+To obtain the right image I use the following function that performs a perspective transform:
 
 ```python
 def PerspectiveTransform(self, img, perspectiveMatrix):
@@ -123,33 +123,57 @@ def PerspectiveTransform(self, img, perspectiveMatrix):
 
 ```
 
-includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+The perspective matrix is computed by giving the coordinates of the 2 red rectangles.
+I defined my points in my `parameters.py` file as :
+```python
+parameters = { 'orig_points_x' : (575, 705, 1127, 203),#(617, 660, 1125, 188),
+               'orig_points_y' : 460,
+               ...
+             }
+```
+
+and I construct my 2 rectangles that way.
 
 ```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
+def InitPerspectiveMatrix(img):
+    '''
+    Order of the points
+            1 ---- 2        <- parameters['orig_points_y']
+           /        \
+          /          \
+         /            \
+        4 ------------ 3
+    '''
+    global src
+    global dst
+    src = np.float32(
+        [[P.parameters['orig_points_x'][0], P.parameters['orig_points_y']],
+        [P.parameters['orig_points_x'][1],  P.parameters['orig_points_y']],
+        [P.parameters['orig_points_x'][2],  img.shape[0]],
+        [P.parameters['orig_points_x'][3],  img.shape[0]]])
+    dst = np.float32(
+        [[(img.shape[1] / 4),    0],
+        [ (img.shape[1] * 3 / 4), 0],
+        [ (img.shape[1] * 3 / 4), img.shape[0]],
+        [ (img.shape[1] / 4),     img.shape[0]]])
+    #print(src)
+    #print(dst)
+    return cv2.getPerspectiveTransform(src, dst), cv2.getPerspectiveTransform(dst, src),
 ```
 
 This resulted in the following source and destination points:
 
 | Source        | Destination   |
 |:-------------:|:-------------:|
-| 585, 460      | 320, 0        |
-| 203, 720      | 320, 720      |
+| 575, 460      | 320, 0        |
+| 705, 460      | 960, 0        |
 | 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| 203, 720      | 320, 720      |
+
 
 I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
 
-![alt text][image4]
+![alt text][persp2]
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 

@@ -8,7 +8,8 @@ parameters = { 'orig_points_x' : (575, 705, 1127, 203),#(617, 660, 1125, 188),
                'sx_thresh'     : (20, 100),
                'l_white_thresh': (200, 255),
                'videofile_in'  : 'project_video.mp4',
-               'videofile_out' : 'output_videos/project_video.mp4'
+               'videofile_out' : 'output_videos/project_video.mp4',
+               'output_video_as_images' : 1
 }
 
 # src = np.float32(
