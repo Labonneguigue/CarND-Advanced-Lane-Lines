@@ -404,7 +404,7 @@ class LanesDetector():
         '''
         Change the perspective of the image
         '''
-        return cv2.warpPerspective(img, PersMat, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
+        return cv2.warpPerspective(img, perspectiveMatrix, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
 
     def ProcessingPipeline(self, img):
         '''
@@ -424,9 +424,9 @@ class LanesDetector():
         s_channel = hsv[:,:,2]
 
         SobelBinary = SobelBinarization(l_channel)  # sobel along x
-        ColorBinary = ColorChannelBinarization(s_channel)
+        WhiteBinary = ColorChannelBinarization(s_channel)
+        YellowBinary = ColorChannelBinarization(s_channel, (200, 255))
 
-        #return StackImages(SobelBinary, ColorBinary)
         return MergeChannels(SobelBinary, ColorBinary)
 
     def OverlayDetectedLane(self, image):

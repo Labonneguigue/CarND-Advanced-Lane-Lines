@@ -11,20 +11,64 @@ import detect as D
 import calibration as C
 import parameters as P
 
-def CalibrationTest(img):
-    mtx, dist = P.LoadCalibrationCoeffs()
-    dst = cv2.undistort(img, P.mtx, P.dist, None, P.mtx)
-    mpimg.imsave(fname[:-4] + '-undistorted.jpg', dst)
+def showimg(subplace, title, _img):
+    plt.subplot(*subplace)
+    plt.axis('off')
+    plt.title(title)
+    plt.imshow(_img)
+    plt.tight_layout()
+
+def CalibrationTest(img, fname):
+    mtx, dist = C.LoadCalibrationCoeffs()
+    dst = cv2.undistort(img, mtx, dist, None, mtx)
+    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(14,5))
+    ax1.imshow(img)
+    ax1.set_title('Original Image', fontsize=30)
+    ax2.imshow(dst)
+    ax2.set_title('Undistorted Image', fontsize=30)
+    plt.savefig('output_images/' + os.path.basename(fname)[:-4] + '-undistorted.jpg')
+    #mpimg.imsave(fname[:-4] + '-undistorted.jpg', dst)
 
 def ProcessingPipelineTest(lanesDetector,img, fname):
     result = lanesDetector.ProcessingPipeline(img)
-    fname = fname[:-4] + '-processed.png'
-    mpimg.imsave(fname, result)
+    fname = 'output_images/' + os.path.basename(fname)[:-4] + '-processed.png'
+    mpimg.imsave(fname, result, cmap=plt.cm.gray)
     print("Saved : " + fname)
     return result
 
+def SobelTest(img, fname):
+    mtx, dist = C.LoadCalibrationCoeffs()
+    dst = cv2.undistort(img, mtx, dist, None, mtx)
+    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
+    l_channel = hsv[:,:,1]
+    SobelBinary = D.SobelBinarization(l_channel)
+    fname = 'output_images/' + os.path.basename(fname)[:-4] + '-sobel.png'
+    mpimg.imsave(fname, SobelBinary, cmap=plt.cm.gray)
+    print("Saved : " + fname)
+
+def ColorTest(img, fname):
+    mtx, dist = C.LoadCalibrationCoeffs()
+    dst = cv2.undistort(img, mtx, dist, None, mtx)
+    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
+    s_channel = hsv[:,:,2]
+    ColorBinarized = D.ColorChannelBinarization(s_channel)
+    fname = 'output_images/' + os.path.basename(fname)[:-4] + '-colorS.png'
+    mpimg.imsave(fname, ColorBinarized, cmap=plt.cm.gray)
+    print("Saved : " + fname)
+
+def WhiteColorTest(img, fname):
+    mtx, dist = C.LoadCalibrationCoeffs()
+    dst = cv2.undistort(img, mtx, dist, None, mtx)
+    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
+    l_channel = hsv[:,:,1]
+    WhiteBinarized = D.ColorChannelBinarization(l_channel, (200, 255))
+    fname = 'output_images/' + os.path.basename(fname)[:-4] + '-whiteL.png'
+    mpimg.imsave(fname, WhiteBinarized, cmap=plt.cm.gray)
+    print("Saved : " + fname)
+
+
 def PerspectiveTransformTest(lanesDetector, img, fname, extension=""):
-    result = lanesDetector.PerspectiveTransform(img)
+    result = lanesDetector.PerspectiveTransform(img, P.PersMat)
     color=[255, 0, 0]
     thickness=1
     cv2.line(result, (D.dst[0][0], D.dst[0][1]), (D.dst[1][0], D.dst[1][1]), color, thickness)
@@ -63,22 +107,28 @@ if __name__ == "__main__":
     #fname = 'test_images/straight_lines1.jpg'
     #fname = 'test_images/straight_lines2.jpg'
     #fname = 'test_images/test1.jpg'
-    fname = 'test_images/test2.jpg'
+    #fname = 'test_images/test2.jpg'
+    fname = 'test_images/test6.jpg'
     print("Test performed on : " + fname)
     output_dir = "test_images/"
     img = D.LoadImage(fname)
     D.Init(img)
-    print(img.shape)
     if 0:
-        CalibrationTest()
+        CalibrationTest(img, fname)
     if 0:
-        ProcessingPipelineTest(img)
+        ProcessingPipelineTest(D.LanesDetector(), img, fname)
+    if 0:
+        SobelTest(img, fname)
+    if 1:
+        ColorTest(img, fname)
+    if 1:
+        WhiteColorTest(img, fname)
     if 0:
         DisplayParameters()
     if 0:
         img = cv2.undistort(img, D.mtx, D.dist, None, D.mtx)
         PerspectiveTransformTest(img, fname, "-undistorted")
-    if 1:
+    if 0:
         lanesDetector = D.LanesDetector()
         dir = os.listdir("test_images/")
         for file in dir:
