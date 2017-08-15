@@ -49,14 +49,21 @@ def SobelTest(img, fname):
 def ColorTest(img, fname):
     mtx, dist = C.LoadCalibrationCoeffs()
     dst = cv2.undistort(img, mtx, dist, None, mtx)
-    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
-    s_channel = hsv[:,:,2]
+    hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
+    s_channel = hls[:,:,2]
     # ColorBinarized = D.ColorChannelBinarization(s_channel, (170, 200))
     lower = np.uint8([ 10,   0, 100])
     upper = np.uint8([ 40, 255, 255])
-    ColorBinarized = cv2.inRange(hsv, lower, upper)
+    ColorBinarized = cv2.inRange(hls, lower, upper)
     fname = 'output_images/' + os.path.basename(fname)[:-4] + '-colorS.png'
     mpimg.imsave(fname, ColorBinarized, cmap=plt.cm.gray)
+
+    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV).astype(np.float)
+    yellow_dark = np.array([15, 127, 127], dtype=np.uint8)
+    yellow_light = np.array([30, 255, 255], dtype=np.uint8)
+    yellow_range = cv2.inRange(hsv, yellow_dark, yellow_light)
+    fname = 'output_images/' + os.path.basename(fname)[:-4] + '-yellow.png'
+    mpimg.imsave(fname, yellow_range, cmap=plt.cm.gray)
     print("Saved : " + fname)
 
 def WhiteColorTest(img, fname):
@@ -123,7 +130,7 @@ if __name__ == "__main__":
     output_dir = "test_images/"
     img = D.LoadImage(fname)
     D.Init(img)
-    DisplayParameters()
+    #DisplayParameters()
     img = cv2.undistort(img, D.mtx, D.dist, None, D.mtx)
     if 0:
         CalibrationTest(img, fname)

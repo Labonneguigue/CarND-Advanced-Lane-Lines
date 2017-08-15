@@ -328,26 +328,26 @@ class LanesDetector():
 
     def DetectionFromPreviousPolynomial(self, binary_warped):
         nonzero = binary_warped.nonzero()
-        nonzeroy = np.array(nonzero[0])
-        nonzerox = np.array(nonzero[1])
-        left_lane_inds = ((nonzerox > (self.leftPolynomialFit[0]*(nonzeroy**2) + \
-                                       self.leftPolynomialFit[1]*nonzeroy + \
+        self.nonzeroy = np.array(nonzero[0])
+        self.nonzerox = np.array(nonzero[1])
+        self.left_lane_inds = ((self.nonzerox > (self.leftPolynomialFit[0]*(self.nonzeroy**2) + \
+                                       self.leftPolynomialFit[1]*self.nonzeroy + \
                                        self.leftPolynomialFit[2] - self.margin))
-                        & (nonzerox < (self.leftPolynomialFit[0]*(nonzeroy**2) + \
-                                       self.leftPolynomialFit[1]*nonzeroy + \
+                        & (self.nonzerox < (self.leftPolynomialFit[0]*(self.nonzeroy**2) + \
+                                       self.leftPolynomialFit[1]*self.nonzeroy + \
                                        self.leftPolynomialFit[2] + self.margin)))
-        right_lane_inds = ((nonzerox > (self.rightPolynomialFit[0]*(nonzeroy**2) + \
-                                        self.rightPolynomialFit[1]*nonzeroy + \
+        self.right_lane_inds = ((self.nonzerox > (self.rightPolynomialFit[0]*(self.nonzeroy**2) + \
+                                        self.rightPolynomialFit[1]*self.nonzeroy + \
                                         self.rightPolynomialFit[2] - self.margin)) \
-                         & (nonzerox < (self.rightPolynomialFit[0]*(nonzeroy**2) + \
-                                        self.rightPolynomialFit[1]*nonzeroy + \
+                         & (self.nonzerox < (self.rightPolynomialFit[0]*(self.nonzeroy**2) + \
+                                        self.rightPolynomialFit[1]*self.nonzeroy + \
                                         self.rightPolynomialFit[2] + self.margin)))
 
         # Again, extract left and right line pixel positions
-        leftx = nonzerox[left_lane_inds]
-        lefty = nonzeroy[left_lane_inds]
-        rightx = nonzerox[right_lane_inds]
-        righty = nonzeroy[right_lane_inds]
+        leftx = self.nonzerox[self.left_lane_inds]
+        lefty = self.nonzeroy[self.left_lane_inds]
+        rightx = self.nonzerox[self.right_lane_inds]
+        righty = self.nonzeroy[self.right_lane_inds]
         # Fit a second order polynomial to each
         self.leftPolynomialFit = np.polyfit(lefty, leftx, 2)
         self.rightPolynomialFit = np.polyfit(righty, rightx, 2)
@@ -395,8 +395,8 @@ class LanesDetector():
         outputImage = np.dstack((binary_warped, binary_warped, binary_warped))*255
         window_img = np.zeros_like(outputImage)
         # Color in left and right line pixels
-        #outputImage[self.nonzeroy[self.left_lane_inds], self.nonzerox[self.left_lane_inds]] = [255, 0, 0]
-        #outputImage[self.nonzeroy[self.right_lane_inds], self.nonzerox[self.right_lane_inds]] = [0, 0, 255]
+        outputImage[self.nonzeroy[self.left_lane_inds], self.nonzerox[self.left_lane_inds]] = [255, 0, 0]
+        outputImage[self.nonzeroy[self.right_lane_inds], self.nonzerox[self.right_lane_inds]] = [0, 0, 255]
 
         self.left_fitx = self.leftPolynomialFit[0]*self.ploty**2 + self.leftPolynomialFit[1]*self.ploty + self.leftPolynomialFit[2]
         self.right_fitx = self.rightPolynomialFit[0]*self.ploty**2 + self.rightPolynomialFit[1]*self.ploty + self.rightPolynomialFit[2]
@@ -463,8 +463,12 @@ class LanesDetector():
 
         SobelBinary = SobelBinarization(l_channel)  # sobel along x
         WhiteBinary = ColorChannelBinarization(l_channel, (200, 255))
-        YellowBinary = ColorChannelBinarization(s_channel)
-
+        #YellowBinary = ColorChannelBinarization(s_channel, ())
+        lower = np.uint8([ 10,   0, 100])
+        upper = np.uint8([ 40, 255, 255])
+        YellowBinary = cv2.inRange(hsv, lower, upper)
+        assert(WhiteBinary.shape == YellowBinary.shape)
+        # return MergeChannels(SobelBinary, WhiteBinary, YellowBinary)
         return MergeChannels(SobelBinary, WhiteBinary, YellowBinary)
 
     def OverlayDetectedLane(self, image):
@@ -547,9 +551,9 @@ class LanesDetector():
         self.UpdateCurvatureRadius()
         self.RenderText(image)
         overlayedLane = self.OverlayDetectedLane(image)
-        #result = self.AggregateViews([overlayedLane, binary, result])
+        result = self.AggregateViews([overlayedLane, binary, result])
 
-        return binary
+        return result
 
     def OutputImages(self, image, key_frame_interval=20, cache_length=10):
         binary = self.ProcessingPipeline(image)
@@ -565,7 +569,7 @@ if __name__ == "__main__":
     lanesDetector = LanesDetector()
 
     print('Processing video ... ' + P.parameters['videofile_in'])
-    vfc = VideoFileClip(P.parameters['videofile_in']).subclip(41, 42)
+    vfc = VideoFileClip(P.parameters['videofile_in']).subclip(40, 42)
     if P.parameters['output_video_as_images']:
         detected_vid_clip = vfc.fl_image(lanesDetector.OutputImages)
     else:
