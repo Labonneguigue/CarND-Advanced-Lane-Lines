@@ -302,9 +302,8 @@ Here is a plantuml activity diagram of my pipeline:
 ### Pipeline (video)
 
 Now is the most interesting part, how does my pipeline performs on videos.
-Here's a [link to my video result.](./project_video.mp4)
 
-Here's a [link to the video result with 4 different views.](./output_videos/project_video_4views.mp4)
+Here's a [link to the video result with 4 different views.](./output_videos/project_video_full.mp4)
 
 
 ---
