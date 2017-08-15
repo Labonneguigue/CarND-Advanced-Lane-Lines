@@ -111,8 +111,8 @@ def InitPerspectiveMatrix(img):
         [P.parameters['orig_points_x'][2],  img.shape[0]],
         [P.parameters['orig_points_x'][3],  img.shape[0]]])
     dst = np.float32(
-        [[(img.shape[1] / 4),    0],
-        [ (img.shape[1] * 3 / 4), 0],
+        [[(img.shape[1] / 4),    P.parameters['detection_distance']],
+        [ (img.shape[1] * 3 / 4),P.parameters['detection_distance']],
         [ (img.shape[1] * 3 / 4), img.shape[0]],
         [ (img.shape[1] / 4),     img.shape[0]]])
     #print(src)
@@ -170,7 +170,7 @@ class LanesDetector():
         self.left_lane_inds = []
         self.right_lane_inds = []
         # Set the width of the windows +/- margin
-        self.margin = 100
+        self.margin = P.parameters['margin']
         # Set minimum number of pixels found to recenter window
         self.minpix = 50
         # Image to write on and visualize the results
@@ -222,7 +222,7 @@ class LanesDetector():
         roadCenter = (self.left_fitx[-1] + self.right_fitx[-1]) / 2
         # Conversion from pixels to meters using Udacity conversion data
         self.carPosition = (roadCenter - self.imageWidth/2)*self.xm_per_pix
-        if (self.carPosition >= 0):
+        if (self.carPosition < 0):
             self.carSide = "Right"
         else:
             self.carSide = "Left "
@@ -333,17 +333,17 @@ class LanesDetector():
         self.left_lane_inds = ((self.nonzerox > (self.leftPolynomialFit[0]*(self.nonzeroy**2) + \
                                        self.leftPolynomialFit[1]*self.nonzeroy + \
                                        self.leftPolynomialFit[2] - self.margin))
-                        & (self.nonzerox < (self.leftPolynomialFit[0]*(self.nonzeroy**2) + \
+                             & (self.nonzerox < (self.leftPolynomialFit[0]*(self.nonzeroy**2) + \
                                        self.leftPolynomialFit[1]*self.nonzeroy + \
                                        self.leftPolynomialFit[2] + self.margin)))
         self.right_lane_inds = ((self.nonzerox > (self.rightPolynomialFit[0]*(self.nonzeroy**2) + \
                                         self.rightPolynomialFit[1]*self.nonzeroy + \
                                         self.rightPolynomialFit[2] - self.margin)) \
-                         & (self.nonzerox < (self.rightPolynomialFit[0]*(self.nonzeroy**2) + \
+                              & (self.nonzerox < (self.rightPolynomialFit[0]*(self.nonzeroy**2) + \
                                         self.rightPolynomialFit[1]*self.nonzeroy + \
                                         self.rightPolynomialFit[2] + self.margin)))
 
-        # Again, extract left and right line pixel positions
+        # Extract left and right line pixel positions
         leftx = self.nonzerox[self.left_lane_inds]
         lefty = self.nonzeroy[self.left_lane_inds]
         rightx = self.nonzerox[self.right_lane_inds]
@@ -370,24 +370,45 @@ class LanesDetector():
         if self.right_fitx is None:
             self.right_fitx = self.rightPolynomialFit[0]*self.ploty**2 + self.rightPolynomialFit[1]*self.ploty + self.rightPolynomialFit[2]
 
-        '''TODO: Remove later'''
-        self.left_fitx = self.leftPolynomialFit[0]*self.ploty**2 + self.leftPolynomialFit[1]*self.ploty + self.leftPolynomialFit[2]
-        self.right_fitx = self.rightPolynomialFit[0]*self.ploty**2 + self.rightPolynomialFit[1]*self.ploty + self.rightPolynomialFit[2]
+        if 0:
+            '''TODO: Remove later'''
+            self.left_fitx = self.leftPolynomialFit[0]*self.ploty**2 + self.leftPolynomialFit[1]*self.ploty + self.leftPolynomialFit[2]
+            self.right_fitx = self.rightPolynomialFit[0]*self.ploty**2 + self.rightPolynomialFit[1]*self.ploty + self.rightPolynomialFit[2]
+
+        if 1:
+            if currentRightRad / currentLeftRad > 7:
+                self.right_curverad = currentRightRad
+                self.right_fitx = currentLeftFitx
+            if currentLeftRad / currentRightRad > 7:
+                self.left_curverad = currentLeftRad
+                self.left_fitx = currentLeftFitx
 
         '''TODO: Enable later'''
         if 0:
-            if not((self.left_curverad / currentLeftRad >= 8) & (currentLeftRad <= 650)):
+            if (self.left_curverad / currentLeftRad >= 8) & (currentLeftRad <= 650):
+                #New polynomial discarded
+                self.lanesDetected = False
+            else:
                 self.left_curverad = currentLeftRad
-            if not((self.right_curverad / currentRightRad >= 8) & (currentRightRad <= 650)):
+                self.left_fitx = currentLeftFitx
+            if (self.right_curverad / currentRightRad >= 8) & (currentRightRad <= 650):
+                #New polynomial discarded
+                self.lanesDetected = False
+            else:
                 self.right_curverad = currentRightRad
+                self.right_fitx = currentLeftFitx
 
     def VisualizeHistogramPolynomial(self, outputImage):
         outputImage[self.nonzeroy[self.left_lane_inds], self.nonzerox[self.left_lane_inds]] = [255, 0, 0]
         outputImage[self.nonzeroy[self.right_lane_inds], self.nonzerox[self.right_lane_inds]] = [0, 0, 255]
         if (self.left_fitx.astype('uint16') < self.imageWidth).all():
             outputImage[self.ploty.astype('uint16'), self.left_fitx.astype('uint16')] = [255, 255, 0]
+        else:
+            self.lanesDetected = False
         if (self.right_fitx.astype('uint16') < self.imageWidth).all():
             outputImage[self.ploty.astype('uint16'), self.right_fitx.astype('uint16')] = [255, 255, 0]
+        else:
+            self.lanesDetected = False
 
         return outputImage, self.ploty, self.left_fitx, self.right_fitx
 
@@ -414,9 +435,9 @@ class LanesDetector():
             outputImage[self.ploty.astype('uint16'), self.right_fitx.astype('uint16')] = [255, 255, 0]
 
         # Draw the lane onto the warped blank image
-        cv2.fillPoly(window_img, np.int_([left_line_pts]), (255, 0, 0))
-        cv2.fillPoly(window_img, np.int_([right_line_pts]), (255, 0, 0))
-        result = cv2.addWeighted(outputImage, 1, window_img, 0.3, 0)
+        cv2.fillPoly(window_img, np.int_([left_line_pts]), (0, 255, 0))
+        cv2.fillPoly(window_img, np.int_([right_line_pts]), (0, 255, 0))
+        result = cv2.addWeighted(outputImage, 1, window_img, 0.25, 0)
 
         # plt.close('all')
         # fig = plt.figure()
@@ -444,7 +465,7 @@ class LanesDetector():
         '''
         return cv2.warpPerspective(img, perspectiveMatrix, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
 
-    def ProcessingPipeline(self, img):
+    def Binarization(self, img):
         '''
         This processing pipeline is composed of the following steps:
          - Image undistortion
@@ -454,30 +475,34 @@ class LanesDetector():
         '''
         assert(initialized)
 
-        dst = cv2.undistort(img, mtx, dist, None, mtx)
-
-        # Convert to HSV color space and separate the V channel
-        hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
-        l_channel = hsv[:,:,1]
-        s_channel = hsv[:,:,2]
+        # Convert to HLS color space and separate the L and S channels
+        hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
+        l_channel = hls[:,:,1]
+        s_channel = hls[:,:,2]
 
         SobelBinary = SobelBinarization(l_channel)  # sobel along x
         WhiteBinary = ColorChannelBinarization(l_channel, (200, 255))
-        #YellowBinary = ColorChannelBinarization(s_channel, ())
-        lower = np.uint8([ 10,   0, 100])
-        upper = np.uint8([ 40, 255, 255])
-        YellowBinary = cv2.inRange(hsv, lower, upper)
+
+        # hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV).astype(np.float)
+        # lower = np.uint8([ 10,   0, 100])
+        # upper = np.uint8([ 40, 255, 255])
+        # YellowBinary = cv2.inRange(hsv, lower, upper)
+        hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV).astype(np.float)
+        yellow_dark = np.array([10, 127, 127], dtype=np.uint8)
+        yellow_light = np.array([35, 255, 255], dtype=np.uint8)
+        YellowBinary = cv2.inRange(hsv, yellow_dark, yellow_light)
         assert(WhiteBinary.shape == YellowBinary.shape)
         # return MergeChannels(SobelBinary, WhiteBinary, YellowBinary)
         return MergeChannels(SobelBinary, WhiteBinary, YellowBinary)
 
-    def OverlayDetectedLane(self, image):
+    def OverlayDetectedLane(self, image, unwarp=True):
         '''
         Create an image to draw the detected lane on, unwarp it
         and use cv2.addWeighted() function to overlay it on top
         of the actual image.
         '''
-        empty_image = np.zeros_like(image).astype(np.uint8)
+        #Create empty image to draw the lane on
+        lane = np.zeros_like(image).astype(np.uint8)
 
         # Cast the x and y points into usable format for cv2.fillPoly()
         pts_left = np.array([np.transpose(np.vstack([self.left_fitx, self.ploty]))])
@@ -485,13 +510,16 @@ class LanesDetector():
         pts = np.hstack((pts_left, pts_right))
 
         # Draw the lane onto the empty image
-        cv2.fillPoly(empty_image, np.int_([pts]), (255, 0, 0))
+        cv2.fillPoly(lane, np.int_([pts]), (255, 0, 0))
 
-        # Warp the empty back to original image space using inverse perspective matrix InvPersMat
-        lane = cv2.warpPerspective(empty_image, InvPersMat, (self.imageWidth, self.imageHeight))
-
+        if unwarp:
+            # Warp the empty back to original image space using inverse perspective matrix InvPersMat
+            output = cv2.warpPerspective(lane, InvPersMat, (self.imageWidth, self.imageHeight))
+        else:
+            #If no unwarp, the detected lane is still in topDownView mode
+            output = lane
         # Combine the result with the original image
-        return cv2.addWeighted(image, 1, lane, 0.3, 0)
+        return cv2.addWeighted(image, 1, output, 0.3, 0)
 
     def AggregateViews(self, views):
         '''
@@ -507,10 +535,10 @@ class LanesDetector():
         # Binarized image -- 2
         view2 = np.dstack((views[1], views[1], views[1]))
         aggregateViews[0:h2, w2:W] = cv2.resize(view2,(w2,h2), interpolation=cv2.INTER_AREA)
-        # Empty -- 3
-        #
+        # topDownView overlayed with detected lane -- 3
+        aggregateViews[h2:H, 0:w2] = cv2.resize(views[2],(w2,h2), interpolation=cv2.INTER_AREA)
         # Warped perspective and polynomial fit of the lines -- 4
-        aggregateViews[h2:H, w2:W] = cv2.resize(views[2],(w2,h2), interpolation=cv2.INTER_AREA)
+        aggregateViews[h2:H, w2:W] = cv2.resize(views[3],(w2,h2), interpolation=cv2.INTER_AREA)
 
         return aggregateViews
 
@@ -526,24 +554,30 @@ class LanesDetector():
         cv2.putText(image, curvatureR, (30, 80), font, 1, fontColor, 2, cv2.LINE_AA)
         lateralDisplacement = "Distance away from lane center (" + self.carSide + ") : " + str(self.carPosition) + " (m)"
         cv2.putText(image, lateralDisplacement, (30, 120), font, 1, fontColor, 2, cv2.LINE_AA)
+        frameNumber = "Frame number : " + str(self.imageCounter)
+        cv2.putText(image, frameNumber, (30, 160), font, 1, fontColor, 2, cv2.LINE_AA)
+
 
     def ProcessImage(self, image, key_frame_interval=20, cache_length=10):
         assert(image.shape[0] == self.imageHeight)
         assert(image.shape[1] == self.imageWidth)
+        self.imageCounter += 1
 
-        binary = self.ProcessingPipeline(image)
-        topDownView = self.PerspectiveTransform(binary, PersMat)
-
-        # result = self.BlindSlidingWindowsHistogram(topDownView)
+        undistorted = cv2.undistort(image, mtx, dist, None, mtx)
+        binary = self.Binarization(undistorted)
+        topDownViewBinarized = self.PerspectiveTransform(binary, PersMat)
+        topDownView = self.PerspectiveTransform(undistorted, PersMat)
+        # result = self.BlindSlidingWindowsHistogram(topDownViewBinarized)
         # self.PolynomialFitAnalysis()
         # result, ploty, l_fit, r_fit = self.VisualizeHistogramPolynomial(result)
 
         if self.lanesDetected:
-            self.DetectionFromPreviousPolynomial(topDownView)
+            self.DetectionFromPreviousPolynomial(topDownViewBinarized)
             self.PolynomialFitAnalysis()
-            result, ploty, l_fit, r_fit = self.VisualizePolynomial(topDownView)
+            result, ploty, l_fit, r_fit = self.VisualizePolynomial(topDownViewBinarized)
         else:
-            result = self.BlindSlidingWindowsHistogram(topDownView)
+            # Only when the polynomial is not defined or lost
+            result = self.BlindSlidingWindowsHistogram(topDownViewBinarized)
             self.PolynomialFitAnalysis()
             result, ploty, l_fit, r_fit = self.VisualizeHistogramPolynomial(result)
 
@@ -551,7 +585,13 @@ class LanesDetector():
         self.UpdateCurvatureRadius()
         self.RenderText(image)
         overlayedLane = self.OverlayDetectedLane(image)
-        result = self.AggregateViews([overlayedLane, binary, result])
+        topDownViewOverlayedLane = self.OverlayDetectedLane(topDownView, unwarp=False)
+
+        # Create an output image composed of different views for debug and illustration purposes
+        if P.parameters['debug_output']:
+            result = self.AggregateViews([overlayedLane, binary, result, topDownViewOverlayedLane])
+        else:
+            result = overlayedLane
 
         return result
 
@@ -569,7 +609,7 @@ if __name__ == "__main__":
     lanesDetector = LanesDetector()
 
     print('Processing video ... ' + P.parameters['videofile_in'])
-    vfc = VideoFileClip(P.parameters['videofile_in']).subclip(40, 42)
+    vfc = VideoFileClip(P.parameters['videofile_in']).subclip(20, 24)
     if P.parameters['output_video_as_images']:
         detected_vid_clip = vfc.fl_image(lanesDetector.OutputImages)
     else:

@@ -22,10 +22,12 @@ The goals / steps of this project are the following:
 [color]: ./output_images/test6-colorS.png "colorS"
 [white]: ./output_images/test6-whiteL.png "whiteL"
 [persp]: ./output_images/test6-persp.png "persp"
-[pipeline]: ./output_images/test6-side.png "pipeline"
+[bin]: ./output_images/test6-side.png "bin"
 [persp2]: ./output_images/straight_lines2-persp.png "persp2"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
+[histo]: ./output_images/test6-slidingW.png "sliding"
+[previousP]: ./output_images/test6-prevP.png "previousP"
+[pipeline]: ./output_images/test6-pipeline.png "pipeline"
+[pipelineD]: ./output_images/test6-pipelineDebug.png "pipelineD"
 [video1]: ./project_video.mp4 "Video"
 [plantuml]: ./processing.png "plantuml"
 
@@ -34,6 +36,14 @@ The goals / steps of this project are the following:
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
 ---
+
+### Code Architecture
+
+* I have my parameters in a separate file `parameters.py` so that they are gathered and I can tweak them more easily.
+* I my calibration code in `calibration.py`.
+* In `test.py` is all my code for saving functions outputs for visual testing and filling in this report.
+* I wrote the main part of the algorithm in `detect.py`.
+
 
 ### Camera Calibration
 
@@ -104,7 +114,7 @@ We can observe that the white detecting picture detect the right line more accur
 
 Here's an example of my output for this step which is an aggregation of these previous steps.  
 
-![alt text][pipeline]
+![alt text][bin]
 
 #### 3. Perspective Transform
 
@@ -148,11 +158,11 @@ def InitPerspectiveMatrix(img):
     global dst
     src = np.float32(
         [[P.parameters['orig_points_x'][0], P.parameters['orig_points_y']],
-        [P.parameters['orig_points_x'][1],  P.parameters['orig_points_y']],
-        [P.parameters['orig_points_x'][2],  img.shape[0]],
-        [P.parameters['orig_points_x'][3],  img.shape[0]]])
+        [ P.parameters['orig_points_x'][1], P.parameters['orig_points_y']],
+        [ P.parameters['orig_points_x'][2], img.shape[0]],
+        [ P.parameters['orig_points_x'][3], img.shape[0]]])
     dst = np.float32(
-        [[(img.shape[1] / 4),    0],
+        [[(img.shape[1] / 4),     0],
         [ (img.shape[1] * 3 / 4), 0],
         [ (img.shape[1] * 3 / 4), img.shape[0]],
         [ (img.shape[1] / 4),     img.shape[0]]])
@@ -175,42 +185,134 @@ I verified that my perspective transform was working as expected by drawing the 
 
 ![alt text][persp2]
 
-#### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
+#### 4. Lane Pixels Identification
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+##### 1. First frame
 
-![alt text][image5]
+After obtaining the binarized image and transform its perspective to look at the road form the top, I need to decide which pixels belong to the lane. For the first image I compute a histogram of every pixels in the bottom half of image along the x axis and detect the 2 highest values on each sides.
+They give me the start of the lane.
 
-#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+Then, I iteratively create some bounding boxes (in green) and add the position of each pixels inside them to be part of the line. The center of the next box is the average x position of all of the pixels in the current box. That position is shown by the blue line.
 
-I did this in lines # through # in my code in `my_other_file.py`
+At the end, I chose to color every pixels found for the left line in red and the ones for the right line in blue.
 
-#### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
+Here is the result:
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+![alt text][histo]
 
-![alt text][image6]
+The yellow line in the middle of each lines are polynomials that are fitting each of the colored lines.
+
+##### 2. Subsequent frames
+
+After obtaining both polynomials:
+
+`x = a * y^2 + b * y + c `
+
+I do not need to use the previous method that would be described as blind detection. I use the polynomials and only look at the area nearby.
+
+![alt text][previousP]
+
+I extend each polynomials by a margin (50 pixels) on both sides, add every non zero pixels within that region and fit a new polynomial on top of that.
+
+The code for that function is the following:
+
+```python
+def DetectionFromPreviousPolynomial(self, binary_warped):
+    nonzero = binary_warped.nonzero()
+    self.nonzeroy = np.array(nonzero[0])
+    self.nonzerox = np.array(nonzero[1])
+    self.left_lane_inds = ((self.nonzerox > (self.leftPolynomialFit[0]*(self.nonzeroy**2) + \
+                                   self.leftPolynomialFit[1]*self.nonzeroy + \
+                                   self.leftPolynomialFit[2] - self.margin))
+                         & (self.nonzerox < (self.leftPolynomialFit[0]*(self.nonzeroy**2) + \
+                                   self.leftPolynomialFit[1]*self.nonzeroy + \
+                                   self.leftPolynomialFit[2] + self.margin)))
+    self.right_lane_inds = ((self.nonzerox > (self.rightPolynomialFit[0]*(self.nonzeroy**2) + \
+                                    self.rightPolynomialFit[1]*self.nonzeroy + \
+                                    self.rightPolynomialFit[2] - self.margin)) \
+                          & (self.nonzerox < (self.rightPolynomialFit[0]*(self.nonzeroy**2) + \
+                                    self.rightPolynomialFit[1]*self.nonzeroy + \
+                                    self.rightPolynomialFit[2] + self.margin)))
+
+    # Extract left and right line pixel positions
+    leftx = self.nonzerox[self.left_lane_inds]
+    lefty = self.nonzeroy[self.left_lane_inds]
+    rightx = self.nonzerox[self.right_lane_inds]
+    righty = self.nonzeroy[self.right_lane_inds]
+    # Fit a second order polynomial to each
+    self.leftPolynomialFit = np.polyfit(lefty, leftx, 2)
+    self.rightPolynomialFit = np.polyfit(righty, rightx, 2)
+```
+
+#### 5. Radius of curvature
+
+The whole purpose of detecting a lane is to compute a lane curvature and from it a command to steer the wheel to control the car. The radius of curvature is computed at the bottom of the image, point closest to the car.
+
+This is performed by the function
+```python
+def CalculateCurvatureRadius(self, leftFitX=None, rightFitX=None):
+```
+in the `detect.py` file.
+
+A useful link is the [following](http://www.intmath.com/applications-differentiation/8-radius-curvature.php).
+
+#### 6. Lateral position
+
+Another very useful information is the lateral position of the car within the lane. It is obviously used to keep the car centered and prevent it from leaving the lane unintentionally.
+
+To compute it, I measured the relative x position of the start of each polynomials.
+
+```python
+def UpdateLateralLanePosition(self):
+    '''
+    Returns the position of the car away from the center of the
+    road in meters. A positive value is on the right of center
+    I am using the value at the bottom of the image of each fitted
+    polynomial to evaluate the position of car compared to the
+    lines. I am assuming the camera is mounted in the center of the
+    windshield.
+    '''
+    roadCenter = (self.left_fitx[-1] + self.right_fitx[-1]) / 2
+    # Conversion from pixels to meters using Udacity conversion data
+    self.carPosition = (roadCenter - self.imageWidth/2)*self.xm_per_pix
+    if (self.carPosition < 0):
+        self.carSide = "Right"
+    else:
+        self.carSide = "Left "
+```
+
+#### 7. Final result.
+
+For debugging and explanation purposes, I aggregated 4 different views as an output image.
+
+![alt text][pipelineD]
+
+Here is a final result on a test image:
+
+![alt text][pipeline]
+
+#### 7. Conclusion
+
+Here is a plantuml activity diagram of my pipeline:
+
+![alt text][plantuml]
 
 ---
 
 ### Pipeline (video)
 
-#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
+Now is the most interesting part, how does my pipeline performs on videos.
+Here's a [link to my video result.](./project_video.mp4)
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to the video result with 4 different views.](./output_videos/project_video_4views.mp4)
+
 
 ---
 
 ### Discussion
 
-#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+The techniques I adopted for the solution I just presented work quite well with favorable conditions. It goes very wrong as soon as some other features of the road look a little bit like a lines. The detection would start considering them as well because I haven't implemented a mechanism to check the accuracy the the fitted polynomial.
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.
+I could come up with some checking function that discards the polynomial if certain criteria are not met or if the curvature increase or decrease too rapidly for example.
 
-[//]: # (Comment: Way to include images
-     m1 : <img:output_images/undistortion-comparison.jpg>)
-
-
-![alt text][plantuml]
-
-Check if I really want to call the Init() function with an image...
+Whenever the road would not be horizontal and the horizon line would either go up or down, the algorithm would go crazy. The distance up to which the algorithm should try to detect the road could be variable and adjusted with the car pitch from an IMU input.

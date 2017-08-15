@@ -30,7 +30,7 @@ def CalibrationTest(img, fname):
     #mpimg.imsave(fname[:-4] + '-undistorted.jpg', dst)
 
 def ProcessingPipelineTest(lanesDetector,img, fname):
-    result = lanesDetector.ProcessingPipeline(img)
+    result = lanesDetector.Binarization(img)
     fname = 'output_images/' + os.path.basename(fname)[:-4] + '-processed.png'
     mpimg.imsave(fname, result, cmap=plt.cm.gray)
     print("Saved : " + fname)
@@ -95,20 +95,38 @@ def PerspectiveTransformTest(lanesDetector, img, fname, extension=""):
     print("Saved : " + fname)
     return result
 
-def BlindSlidingWindowsHistogramTest(lanesDetector, img, fname, extension=""):
-    lanesDetector.BlindSlidingWindowsHistogram(img)
-    result, ploty, l_fit, r_fit = lanesDetector.VisualizePolynomial()
-    #plt.subplot((1,1,1))
-    plt.close('all')
-    plt.imshow(result)
-    plt.plot(l_fit, ploty, color='yellow')
-    plt.plot(r_fit, ploty, color='yellow')
-    plt.xlim(0, 1280)
-    plt.ylim(720, 0)
-    fname = fname[:-4] + '-histogram' + extension + '.png'
-    plt.savefig(fname)
+def BlindSlidingWindowsHistogramTest(img, fname):
+    lanesDetector = D.LanesDetector()
+    undistorted = cv2.undistort(img, D.mtx, D.dist, None, D.mtx)
+    binary = lanesDetector.Binarization(undistorted)
+    topDownViewBinarized = lanesDetector.PerspectiveTransform(binary, D.PersMat)
+    result = lanesDetector.BlindSlidingWindowsHistogram(topDownViewBinarized)
+    lanesDetector.PolynomialFitAnalysis()
+    result, ploty, l_fit, r_fit = lanesDetector.VisualizeHistogramPolynomial(result)
+    fname = 'output_images/' + os.path.basename(fname)[:-4] + '-slidingW.png'
+    mpimg.imsave(fname, result)
     print("Saved : " + fname)
-    #mpimg.imsave(fname[:-4] + '-histogram' + extension + '.jpg', result)
+
+def PreviousPolynomialsTest(img, fname):
+    lanesDetector = D.LanesDetector()
+    undistorted = cv2.undistort(img, D.mtx, D.dist, None, D.mtx)
+    binary = lanesDetector.Binarization(undistorted)
+    topDownViewBinarized = lanesDetector.PerspectiveTransform(binary, D.PersMat)
+    result = lanesDetector.BlindSlidingWindowsHistogram(topDownViewBinarized)
+    lanesDetector.PolynomialFitAnalysis()
+    lanesDetector.DetectionFromPreviousPolynomial(topDownViewBinarized)
+    lanesDetector.PolynomialFitAnalysis()
+    result, ploty, l_fit, r_fit = lanesDetector.VisualizePolynomial(topDownViewBinarized)
+    fname = 'output_images/' + os.path.basename(fname)[:-4] + '-prevP.png'
+    mpimg.imsave(fname, result)
+    print("Saved : " + fname)
+
+def TestPipeline(img, fname):
+    lanesDetector = D.LanesDetector()
+    result = lanesDetector.ProcessImage(img)
+    fname = 'output_images/' + os.path.basename(fname)[:-4] + '-pipeline.png'
+    mpimg.imsave(fname, result)
+    print("Saved : " + fname)
 
 def DisplayParameters():
     print(str(P.parameters['orig_points_x'][0]) + ", " + str(P.parameters['orig_points_y']))
@@ -123,30 +141,35 @@ if __name__ == "__main__":
     #fname = 'test_images/test1.jpg'
     # fname = 'test_images/test2.jpg'
     #fname = 'test_images/test5.jpg'
-    #fname = 'test_images/test6.jpg'
-    fname = 'test_images/videoImage-16.jpg'
+    fname = 'test_images/test6.jpg'
+    #fname = 'test_images/videoImage-16.jpg'
     # fname = 'test_images/videoImage-46.png'
     print("Test performed on : " + fname)
     output_dir = "test_images/"
     img = D.LoadImage(fname)
     D.Init(img)
-    #DisplayParameters()
     img = cv2.undistort(img, D.mtx, D.dist, None, D.mtx)
     if 0:
         CalibrationTest(img, fname)
     if 1:
         result = ProcessingPipelineTest(D.LanesDetector(), img, fname)
         D.DisplayAndSave2Images(img, result, os.path.basename(fname)[:-4] + "-side.png", grayscale=True)
-    if 1:
+    if 0:
         SobelTest(img, fname)
     if 1:
         ColorTest(img, fname)
-    if 1:
+    if 0:
         WhiteColorTest(img, fname)
     if 0:
         DisplayParameters()
-    if 1:
+    if 0:
         PerspectiveTransformTest(D.LanesDetector(), img, fname)
+    if 1:
+        BlindSlidingWindowsHistogramTest(img, fname)
+    if 1:
+        PreviousPolynomialsTest(img, fname)
+    if 1:
+        TestPipeline(img, fname)
     if 0:
         lanesDetector = D.LanesDetector()
         dir = os.listdir("test_images/")

@@ -2,16 +2,30 @@
 start
 -> RGB Image;
 :Undistort image;
-fork
-    -> from HLS image format;
-    :L channel extraction;
-    :Threshold binarization;
-fork again
-    :S channel extraction;
-    :Threshold binarization;
-end fork
--> Stacking into a 3D image;
+partition Binarization {
+    fork
+        -> from HLS image format;
+        :L channel extraction;
+        :Threshold binarization;
+    fork again
+        :S channel extraction;
+        :Threshold binarization;
+    end fork
+    -> Stacking into a 3D image;
+}
+
 :Perspective Transform;
+-> Binarized top down view;
+if (Lanes have previously been detected ?) then (no)
+    :Histogram of sliding windows;
+else (yes)
+    :Detection From Previous Polynomial;
+endif
+:Compute lateral lane position;
+:Compute the curvature radius;
+:Render text on the image;
+:Overlay detected lane;
+:Aggregate views;
 
 end
 @enduml
