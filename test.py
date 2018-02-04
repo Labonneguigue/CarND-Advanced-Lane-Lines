@@ -151,7 +151,7 @@ if __name__ == "__main__":
     img = cv2.undistort(img, D.mtx, D.dist, None, D.mtx)
     if 0:
         CalibrationTest(img, fname)
-    if 1:
+    if 0:
         result = ProcessingPipelineTest(D.LanesDetector(), img, fname)
         D.DisplayAndSave2Images(img, result, os.path.basename(fname)[:-4] + "-side.png", grayscale=True)
     if 0:
@@ -162,13 +162,13 @@ if __name__ == "__main__":
         WhiteColorTest(img, fname)
     if 0:
         DisplayParameters()
-    if 0:
+    if 1:
         PerspectiveTransformTest(D.LanesDetector(), img, fname)
-    if 1:
+    if 0:
         BlindSlidingWindowsHistogramTest(img, fname)
-    if 1:
+    if 0:
         PreviousPolynomialsTest(img, fname)
-    if 1:
+    if 0:
         TestPipeline(img, fname)
     if 0:
         lanesDetector = D.LanesDetector()

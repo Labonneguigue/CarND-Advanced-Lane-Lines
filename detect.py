@@ -1,4 +1,6 @@
+import argparse
 import numpy as np
+from numpy.linalg import inv
 import cv2
 import matplotlib
 matplotlib.use('agg')
@@ -129,13 +131,14 @@ def Init(img):
     global dist
     global initialized
     mtx, dist = C.LoadCalibrationCoeffs()
-    assert(mtx != None)
-    assert(dist != None)
 
     global PersMat
     global InvPersMat
     PersMat, InvPersMat = InitPerspectiveMatrix(img)
-    assert(PersMat != None)
+    print([PersMat, InvPersMat])
+    print()
+    print(inv(PersMat))
+    print(InvPersMat)
 
     initialized = True
 
@@ -145,6 +148,9 @@ class LanesDetector():
         # Indicates whether the sliding window histogram needs to
         # be computed
         self.lanesDetected = None
+        # 
+        self.mtx = None
+
         # Image height and width
         self.imageHeight = img_size[0]
         self.imageWidth = img_size[1]
@@ -563,10 +569,14 @@ class LanesDetector():
         assert(image.shape[1] == self.imageWidth)
         self.imageCounter += 1
 
-        undistorted = cv2.undistort(image, mtx, dist, None, mtx)
-        binary = self.Binarization(undistorted)
-        topDownViewBinarized = self.PerspectiveTransform(binary, PersMat)
+        undistorted = cv2.undistort(image, self.mtx, dist, None, self.mtx)
         topDownView = self.PerspectiveTransform(undistorted, PersMat)
+        topDownViewBinarized = self.Binarization(topDownView)
+
+        binary = self.Binarization(undistorted)
+        #topDownViewBinarized = self.PerspectiveTransform(binary, PersMat)
+        #topDownView = self.PerspectiveTransform(undistorted, PersMat)
+
         # result = self.BlindSlidingWindowsHistogram(topDownViewBinarized)
         # self.PolynomialFitAnalysis()
         # result, ploty, l_fit, r_fit = self.VisualizeHistogramPolynomial(result)
@@ -602,7 +612,17 @@ class LanesDetector():
         self.imageCounter += 1
         return binary
 
+    
+    def run(self, image=None):
+        pass
+
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='Detects lane lines on the road. Can be used online (using the camera) or offline (using a recording.')
+    parser.add_argument('-c', '--camera', action="store_true", help='uses the camera as an input the the algorithm')
+    args = parser.parse_args()
+    print(args.camera)
+
     img = LoadImage()
     Init(img)
 
