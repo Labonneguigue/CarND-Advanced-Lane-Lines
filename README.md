@@ -1,4 +1,4 @@
-
+[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
 # **Advanced Lane Finding Project**
 
@@ -302,7 +302,9 @@ Here is a plantuml activity diagram of my pipeline:
 
 Now is the most interesting part, how does my pipeline performs on videos.
 
-Here's a [link to the video result with 4 different views.](./output_videos/project_video_full.mp4)
+<iframe width="560" height="315" src="https://www.youtube.com/embed/9vSEp8IkPYk" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
+Here's a [link to the same result if you read this as a .md.](./output_videos/project_video_full.mp4)
 
 
 ---
